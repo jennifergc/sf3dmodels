@@ -48,7 +48,7 @@ class MakeDatatab(object):
             av_props = ['dens_ion', 'dens_e', 'dens_dust',
                         'temp_gas', 'temp_dust', 
                         'vel_x', 'vel_y', 'vel_z',
-                        'microturbulence'
+                        'microturbulence', 'dens_H2', 'dens_He', 'abundance'
                         ]
         #if cls == Polaris or (parents == Polaris).any(): pass
         return av_props
@@ -448,6 +448,14 @@ class Radmc3d(MakeDatatab): #RADMC-3D uses the cgs units system
     +---------------+----------+--------------------------+
     |microturbulence| 12       |Microturbulent velocity   |
     +---------------+----------+--------------------------+
+    | dens_H2       | 13       |Molecular Hydrogen density|
+    +---------------+----------+--------------------------+
+    | dens_He       | 14       |Helium density            |
+    +---------------+----------+--------------------------+
+    | abundance     | 15       |Molecular abundance       |
+    +---------------+----------+--------------------------+
+
+
     """    
 
     def __init__(self, GRID, nphot=None):
@@ -477,7 +485,10 @@ class Radmc3d(MakeDatatab): #RADMC-3D uses the cgs units system
                     vel_y =                10,
                     vel_z =                11,
                     microturbulence =      12,
-                    max_cols =             13)
+                    dens_H2 =              13,
+                    dens_He =              14,
+                    abundance =            15,
+                    max_cols =             16)
 
         self.sf3d_header = base
         
@@ -504,8 +515,8 @@ class Radmc3d(MakeDatatab): #RADMC-3D uses the cgs units system
            Defaults to [1,1,1]
         """
         nx,ny,nz = self.GRID.Nodes
-        if conv_to_cm: xi, yi, zi = np.array(self.GRID.XYZgrid) * cm #from m to cm
-        else: xi, yi, zi = np.array(self.GRID.XYZgrid)
+        if conv_to_cm: xi, yi, zi = [self.GRID.XYZgrid[i] * cm for i in range(3)] #from m to cm
+        else: xi, yi, zi = [self.GRID.XYZgrid[i] for i in range(3)]
 
         #if not self.amr_grid:
         with open('amr_grid.inp','w+') as f:
