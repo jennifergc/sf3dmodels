@@ -2,7 +2,9 @@
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 import glob
+import importlib
 import os
+import pkgutil
 import sys
 
 # Enforce Python version check - this is the same check as in __init__.py but
@@ -11,8 +13,41 @@ if sys.version_info < tuple((int(val) for val in "2.7".split('.'))):
     sys.stderr.write("ERROR: sf3dmodels requires Python {} or later\n".format(2.7))
     sys.exit(1)
 
-import ah_bootstrap
-from setuptools import setup
+def _module_available(name):
+    finder = getattr(importlib, "util", None)
+    if finder is not None:
+        spec = importlib.util.find_spec(name)
+        if spec is not None:
+            return True
+    return pkgutil.find_loader(name) is not None
+
+
+if _module_available("setuptools"):
+    import ah_bootstrap  # noqa: F401
+
+try:
+    from setuptools import setup
+except ImportError:  # ModuleNotFoundError is a subclass of ImportError
+    try:
+        from astropy_helpers.setuptools_shim import setup
+    except ImportError:
+        import os
+
+        shim_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 'sf3dmodels', '_setuptools_shim.py')
+
+        try:  # pragma: no cover -- Python 3.5+
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location('astropy_helpers.setuptools_shim', shim_path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)  # type: ignore[union-attr]
+        except (ImportError, AttributeError):  # pragma: no cover -- Python 2 fallback
+            import imp
+
+            module = imp.load_source('astropy_helpers.setuptools_shim', shim_path)
+
+        setup = module.setup
 
 if sys.argv[1]=='install' or sys.argv[1]=='develop': os.system("git submodule update --init --recursive lime")
 
